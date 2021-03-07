@@ -1,0 +1,8 @@
+=begin sbml
+
+=object web: id=${web-id}.web, filename=${dir-path}/editor.html, \
+            javascript-bridge="__$_bridge", \
+            script-when-loaded=${web-prefix}__on_web_loaded, \
+            style=web
+
+=end sbml

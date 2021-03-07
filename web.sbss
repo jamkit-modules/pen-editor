@@ -1,0 +1,3 @@
+#web: width=1pw, height=1ph, position=abs, gravity=center, autoresizing=flexible-size
+
+/sbml: fits-to-page=yes
