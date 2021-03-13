@@ -7,6 +7,7 @@
   
     // allow command list
     var commandsReg = {
+      general: /^(?:undo|redo|paste|unlink)$/,
       block: /^(?:p|h[1-6]|blockquote|pre)$/,
       inline: /^(?:bold|italic|underline|insertorderedlist|insertunorderedlist|indent|outdent)$/,
       source: /^(?:createlink|unlink)$/,
@@ -91,6 +92,7 @@
         titles: {},
         cleanAttrs: ['id', 'class', 'style', 'name'],
         cleanTags: ['script'],
+        stripTags: ['span'],
         linksInNewWindow: false
       };
   
@@ -131,10 +133,16 @@
       return commandOverall(ctx, name, val);
     }
   
+    function commandGeneral(ctx, name) {
+      return commandOverall(ctx, name, null);
+    }
+  
     function commandBlock(ctx, name) {
-      var list = effectNode(ctx, getNode(ctx), true);
-      if (list.indexOf(name) !== -1) name = 'p';
       return commandOverall(ctx, 'formatblock', name);
+    }
+  
+    function commandInline(ctx, name, value) {
+      return commandOverall(ctx, name, value);
     }
   
     function commandWrap(ctx, tag, value) {
@@ -144,7 +152,7 @@
   
     function commandLink(ctx, tag, value) {
       if (ctx.config.linksInNewWindow) {
-        value = '< a href="' + value + '" target="_blank">' + (selection.toString()) + '</a>';
+        value = '<a href="' + value + '" target="_blank">' + (selection.toString()) + '</a>';
         return commandOverall(ctx, 'insertHTML', value);
       } else {
         return commandOverall(ctx, tag, value);
@@ -601,10 +609,12 @@
       name = name.toLowerCase();
       this.setRange();
   
-      if (commandsReg.block.test(name)) {
+      if (commandsReg.general.test(name)) {
+        commandGeneral(this, name);
+      } else if (commandsReg.block.test(name)) {
         commandBlock(this, name);
       } else if (commandsReg.inline.test(name)) {
-        commandOverall(this, name, value);
+        commandInline(this, name, value);
       } else if (commandsReg.source.test(name)) {
         commandLink(this, name, value);
       } else if (commandsReg.insert.test(name)) {
@@ -619,7 +629,7 @@
     };
   
     // remove attrs and tags
-    // pen.cleanContent({cleanAttrs: ['style'], cleanTags: ['id']})
+    // pen.cleanContent({cleanAttrs: ['style'], cleanTags: ['id'], stripTags: ['span']})
     Pen.prototype.cleanContent = function(options) {
       var editor = this.config.editor;
   
@@ -631,6 +641,18 @@
       }, true);
       utils.forEach(options.cleanTags, function (tag) {
         utils.forEach(editor.querySelectorAll(tag), function(item) {
+          item.parentNode.removeChild(item);
+        }, true);
+      }, true);
+      utils.forEach(options.stripTags, function (tag) {
+        utils.forEach(editor.querySelectorAll(tag), function(item) {
+          var texts = item.innerText.split('\n');
+          for (var i = 0; i < texts.length; ++i) {
+            item.parentNode.insertBefore(document.createTextNode(texts[i]), item);
+            if (i < texts.length - 1) {
+              item.parentNode.insertBefore(document.createElement('br'), item);
+            }
+          }
           item.parentNode.removeChild(item);
         }, true);
       }, true);
@@ -834,10 +856,10 @@
       p: [/<p\b[^>]*>(.*?)<\/p>/ig, '\n$1\n'],
       hr: [/<hr\b[^>]*>/ig, '\n---\n']
     };
-  
+
     Pen.prototype.toMd = function() {
       var html = this.getContent()
-            .replace(/\n+/g, '') // remove line break
+            .replace(/(\n+)|(<br\b[^>]*>)/ig, '') // remove line break
             .replace(/<([uo])l\b[^>]*>(.*?)<\/\1l>/ig, '$2'); // remove ul/ol
   
       for(var p in regs) {

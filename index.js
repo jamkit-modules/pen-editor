@@ -43,6 +43,22 @@ var module = (function() {
             return this;
         },
 
+        get_content: function() {
+            return new Promise(function(resolve, reject) {
+                var handler = function() {
+                    webjs.call("getContent")
+                        .then(function(result) {
+                            resolve(result);
+                        })
+                        .catch(function(error) {
+                            reject(error);
+                        });
+                }
+
+                _web_loaded ? handler() : _handlers.push(handler);
+            });
+        },
+
         get_markdown: function() {
             return new Promise(function(resolve, reject) {
                 var handler = function() {
@@ -62,7 +78,7 @@ var module = (function() {
         exec_command: function(name, value) {
             return new Promise(function(resolve, reject) {
                 var handler = function() {
-                    webjs.call("execCommand", [ name, value ])
+                    webjs.call("execCommand", [ name, value || null ])
                         .then(function(result) {
                             resolve(result);
                         })

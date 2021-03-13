@@ -1,5 +1,15 @@
 var _$_editor = new Pen(document.getElementById('editor'));
 
+function getContent(onResult, onError) {
+    try {
+        onResult({
+            "content": _$_editor.getContent()
+        });
+    } catch (error) {
+        onError(error);
+    }
+}
+
 function getMarkdown(onResult, onError) {
     try {
         onResult({
